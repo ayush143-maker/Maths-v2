@@ -9,6 +9,8 @@
 <style>
   html,body{margin:0;height:100%;background:#050505;overflow:hidden;font-family:'Poppins',sans-serif}
   canvas{position:fixed;left:0;top:0}
+  #ver{position:fixed;left:8px;bottom:6px;font-size:10px;color:rgba(255,255,255,.25);
+       z-index:20;pointer-events:none;letter-spacing:1px}
   #title{position:fixed;left:50%;top:14%;transform:translate(-50%,-50%);
          font-weight:300;font-size:clamp(17px,4.6vmin,40px);color:#f4f4f4;
          opacity:0;transition:opacity .8s;pointer-events:none;white-space:nowrap}
@@ -39,6 +41,7 @@
 </head>
 <body>
 <canvas id="cv"></canvas>
+<div id="ver">v8</div>
 
 <div id="title"><span class="q">❝</span> Maths is not <span class="rom">romantic</span> <span class="q">❞</span></div>
 
@@ -181,8 +184,7 @@ function render(t){
   words.forEach(el=>el.classList.toggle('on',t>=(+el.dataset.t+LS)));
   lyrs.forEach(el=>el.classList.toggle('off',t>(+el.dataset.end+LS)));}
 
-/* MASTER CLOCK: wall-clock primary (replay pe guaranteed reset),
-   audio se auto-resync jab bhi drift > 0.15s -> lyrics synced */
+/* MASTER CLOCK: wall-clock primary; audio se resync sirf jab drift > .15s */
 function currentT(){
   if(!started)return 0;
   let t=(performance.now()-startStamp)/1000;
@@ -195,12 +197,22 @@ function finish(){playing=false;pausedT=DUR;if(hasSong)song.pause();
   pbox.style.display='none'; rbox.style.display='block'; ov.classList.remove('hidden');}
 function start(){clearLyrics();started=true;playing=true;
   if(hasSong){ song.pause(); try{song.currentTime=0;}catch(e){}
-    song.load(); song.play().catch(()=>{}); }        // hard reset -> audio bhi 0 se
-  startStamp=performance.now(); ov.classList.add('hidden');}
-function tick(){let t=playing?currentT():pausedT;
-  if(playing&&t>=DUR)finish();
-  render(t);requestAnimationFrame(tick);}
-requestAnimationFrame(tick);
+    song.play().catch(()=>{}); }
+  startStamp=performance.now(); pausedT=0; ov.classList.add('hidden');}
+
+/* ANTI-FREEZE LOOP: try/finally + watchdog — rAF kabhi nahi marta */
+let rafId=0,lastFrame=performance.now();
+function loop(){rafId=0;lastFrame=performance.now();
+  try{
+    let t=playing?currentT():pausedT;
+    if(playing&&t>=DUR)finish();
+    render(t);
+  }catch(e){/* kabhi crash mat karo */}
+  schedule();}
+function schedule(){ if(!rafId) rafId=requestAnimationFrame(loop); }
+setInterval(()=>{ if(performance.now()-lastFrame>600){ rafId=0; schedule(); } },400);
+schedule();
+
 pbox.onclick=e=>{e.stopPropagation();start();};
 rbox.onclick=e=>{e.stopPropagation();start();};
 ov.onclick=()=>start();
