@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Maths is not romantic</title>
 <!-- REPO: index.html + pro.mp3 same folder. (naam alag ho to SONG constant badlo) -->
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <style>
   html,body{margin:0;height:100%;background:#050505;overflow:hidden;font-family:'Poppins',sans-serif}
   canvas{position:fixed;left:0;top:0}
@@ -26,9 +26,16 @@
   #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
       background:rgba(0,0,0,.5);z-index:10;cursor:pointer}
   #ov.hidden{display:none}
-  #pbox,#rbox{background:transparent;border:1.5px solid #3aa0ff;color:#3aa0ff;border-radius:10px;
-        padding:10px 44px;font-size:18px;letter-spacing:2px;font-family:'Poppins',sans-serif;font-weight:500}
-  #rbox{display:none}
+  /* sleek pill: indigo+blue gradient border + gradient text */
+  #pbox,#rbox{
+    border:1.5px solid transparent;border-radius:999px;padding:11px 48px;
+    font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;
+    letter-spacing:3px;text-transform:uppercase;cursor:pointer;
+    background:linear-gradient(#07070d,#07070d) padding-box,
+               linear-gradient(135deg,#6366f1,#2563eb,#38bdf8) border-box;}
+  #pbox span,#rbox span{background:linear-gradient(90deg,#a5b4fc,#38bdf8);
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  #rbox{display:none;position:absolute;left:50%;top:76%;transform:translateX(-50%);}
 </style>
 </head>
 <body>
@@ -50,8 +57,8 @@
 </div>
 
 <div id="ov">
-  <button id="pbox">Play</button>
-  <button id="rbox">Replay</button>
+  <button id="pbox"><span>Play</span></button>
+  <button id="rbox"><span>Replay</span></button>
 </div>
 <audio id="song" preload="auto"></audio>
 
@@ -94,10 +101,11 @@ const easeInCubic=x=>x*x*x;
 function prog(t,t0){if(t<=t0)return 0;
   const a=clamp((t-t0)/5.5),b=clamp((t-t0-5.5)/(TOUCH-t0-5.5));
   return Math.min(.86*easeOutCubic(a)+.14*easeInOut(b),1);}
+/* FAST ZOOM: tez push-in, 3x tak */
 function zoom(t){return 1
-  + .40*easeInOut(clamp((t-6.5)/4.5))
-  + 1.20*easeInCubic(clamp((t-11)/3.6))
-  - .15*easeInOut(clamp((t-14.6)/.4));}
+  + .45*easeInOut(clamp((t-6.5)/3.5))
+  + 1.55*easeInCubic(clamp((t-10)/4.6))
+  - .20*easeInOut(clamp((t-14.6)/.4));}
 
 const pinkPath=s=>{const u=1-s;return{
   x:u*u*O.x+2*u*s*C.x+s*s*M.x, y:u*u*O.y+2*u*s*C.y+s*s*M.y};};
@@ -118,20 +126,20 @@ function tipDot(q){const[x,y]=P(q);
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,TIP*3,0,7);ctx.fill();
   ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=TIP*2;
   ctx.beginPath();ctx.arc(x,y,TIP,0,7);ctx.fill();ctx.shadowBlur=0;}
-/* equations screen-space me: hamesha RIGHT side, constant size (pehle jaisi) */
-function eq(text,sup,sx,sy,up,color){
-  ctx.textBaseline='middle';
+function eq(text,sup,sx,sy,up,color,alpha){
+  ctx.save();ctx.globalAlpha=alpha;ctx.textBaseline='middle';
   ctx.font=`italic ${FS}px Georgia,"Times New Roman",serif`;
   const w1=ctx.measureText(text).width;
   ctx.font=`italic ${FS*.62}px Georgia,serif`;
   const tot=w1+ctx.measureText(sup).width+2;
-  let x=sx+FS*.6; x=Math.min(x,W-tot-4);          // right side, screen ke andar
+  let x=sx+FS*.6; x=Math.min(x,W-tot-4);
   const y=sy+(up?-FS*.9:FS*1.1);
   ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=10;
   ctx.font=`italic ${FS}px Georgia,"Times New Roman",serif`;
   ctx.fillText(text,x,y);
   ctx.font=`italic ${FS*.62}px Georgia,serif`;
-  ctx.fillText(sup,x+w1+2,y-FS*.32);ctx.shadowBlur=0;}
+  ctx.fillText(sup,x+w1+2,y-FS*.32);
+  ctx.restore();}
 function axes(t){const a=easeOutCubic(clamp(t/.9));if(a<=0)return;
   const[ox,oy]=P(O),[x1]=P({x:.95,y:O.y}),[,y1]=P({x:O.x,y:.05});
   ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=Math.max(1.5,LW*.5);ctx.shadowBlur=0;
@@ -162,14 +170,16 @@ function render(t){
     ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
     ctx.strokeStyle=`rgba(255,255,255,${.5*(1-bt)})`;ctx.lineWidth=LW*.8;
     ctx.beginPath();ctx.arc(x,y,S*.05+S*.55*easeOutCubic(bt),0,7);ctx.stroke();}
-  /* screen-space: vignette + equations (right side, tips ke saath) */
   ctx.setTransform(DPR,0,0,DPR,0,0);
   const v=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.max(W,H)*.75);
   v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.5)');
   ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+  /* equations right side; end pe fade-out (13.2 -> 14.0) */
+  const eqA=1-clamp((t-13.2)/.8);
   const ZS=p=>[F[0]+(P(p)[0]-F[0])*z, F[1]+(P(p)[1]-F[1])*z];
-  if(bp>.002){const[sx,sy]=ZS(tbN);eq('y = 1.1','x',sx,sy,false,'#45c8ff');}
-  if(pp>.002){const[sx,sy]=ZS(tpN);eq('y = x','2',sx,sy,true,'#ff6d9e');}
+  if(eqA>0){
+    if(bp>.002){const[sx,sy]=ZS(tbN);eq('y = 1.1','x',sx,sy,false,'#45c8ff',eqA);}
+    if(pp>.002){const[sx,sy]=ZS(tpN);eq('y = x','2',sx,sy,true,'#ff6d9e',eqA);}}
   titleEl.classList.toggle('show',t>.2&&t<5.0);
   words.forEach(el=>el.classList.toggle('on',t>=(+el.dataset.t+LS)));
   lyrs.forEach(el=>el.classList.toggle('off',t>(+el.dataset.end+LS)));}
