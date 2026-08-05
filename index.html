@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Maths is not romantic</title>
+<!-- REPO SETUP: isi folder me 2 files rakho ->  index.html  +  pro.mp3
+     (agar audio ka naam alag ho to neeche JS me SONG constant badal dena) -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;background:#050505;overflow:hidden;font-family:'Poppins',sans-serif}
+  canvas{position:fixed;left:0;top:0}
+  #title{position:fixed;left:50%;top:14%;transform:translate(-50%,-50%);
+         font-weight:300;font-size:clamp(17px,4.6vmin,40px);color:#f4f4f4;
+         opacity:0;transition:opacity .8s;pointer-events:none;white-space:nowrap}
+  #title.show{opacity:1}
+  #title .q{color:#ffd23f;font-size:.6em;vertical-align:middle}
+  #title .rom{font-family:'Caveat',cursive;color:#ff2e7a;font-size:1.35em;
+              display:inline-block;transform:rotate(-6deg);text-shadow:0 0 16px #ff2e7a}
+  .lyr{position:fixed;left:50%;transform:translateX(-50%);font-family:'Caveat',cursive;
+       font-weight:400;color:#f5f5f5;font-size:clamp(18px,5vmin,36px);letter-spacing:.5px;
+       pointer-events:none;text-shadow:0 0 8px rgba(255,255,255,.22);white-space:nowrap}
+  .lyr .w,.lyr .h{visibility:hidden;margin-right:.32em}
+  .lyr .on{visibility:visible}
+  .lyr .h{color:#ff7fae;text-shadow:0 0 10px rgba(255,127,174,.45)}
+  .lyr.off{display:none}
+  #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,.5);z-index:10;cursor:pointer}
+  #ov.hidden{display:none}
+  #pbox{background:transparent;border:1.5px solid #3aa0ff;color:#3aa0ff;border-radius:10px;
+        padding:10px 44px;font-size:18px;letter-spacing:2px;font-family:'Poppins',sans-serif;
+        font-weight:500}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="title"><span class="q">❝</span> Maths is not <span class="rom">romantic</span> <span class="q">❞</span></div>
+
+<!-- LYRICS — exact video timings; ek time pe sirf EK line -->
+<div class="lyr" data-zone="top" data-end="10.6">
+  <span class="h" data-t="6.8">♡</span><span class="w" data-t="6.8">aankhon</span><span class="w" data-t="8.0">ka</span><span class="w" data-t="8.8">masla</span><span class="h" data-t="8.8">♡</span>
+</div>
+<div class="lyr" data-zone="bottom" data-end="11.7">
+  <span class="h" data-t="10.8">♡</span><span class="w" data-t="10.8">achha</span><span class="w" data-t="11.0">tha</span><span class="h" data-t="11.0">♡</span>
+</div>
+<div class="lyr" data-zone="bottom" data-end="13.5">
+  <span class="h" data-t="11.8">♡</span><span class="w" data-t="11.8">ab le jao</span><span class="w" data-t="12.0">apna</span><span class="w" data-t="12.8">banake</span><span class="h" data-t="12.8">♡</span>
+</div>
+<div class="lyr" data-zone="top" data-end="15.2">
+  <span class="h" data-t="13.6">♡</span><span class="w" data-t="13.6">mujhe</span><span class="w" data-t="13.7">meri jaan</span><span class="h" data-t="13.7">♡</span>
+</div>
+
+<div id="ov"><button id="pbox">Play</button></div>
+
+<audio id="song" preload="auto"></audio>
+
+<script>
+/* ===== AUDIO SETUP ===== repo me index.html ke saath rakhi gayi audio file */
+const SONG='pro.mp3';   // <-- yahan apna audio filename badlo agar alag ho
+
+/* TIMELINE (video same): 0-0.9 axes · 1.0 pink · 1.3 blue · 6.5s zoom · 12s super zoom ·
+   14.6 MEET · 15 end -> Replay
+   LYRICS: 6.8/8.0/8.8 · 10.8/11.0 · 11.8/12.0/12.8 · 13.6/13.7 */
+const DUR=15.0, TOUCH=14.6;
+const O={x:.10,y:.85}, C={x:.32,y:.60}, M={x:.60,y:.32};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const song=document.getElementById('song');
+song.src=SONG;
+const words=[...document.querySelectorAll('.lyr .w, .lyr .h')];
+const lyrs=[...document.querySelectorAll('.lyr')];
+const titleEl=document.getElementById('title');
+const ov=document.getElementById('ov'),pbox=document.getElementById('pbox');
+
+let W,H,DPR,S,X0,Y0,FS,LW,TIP;
+let playing=false,started=false,pausedT=0,startStamp=0,hasSong=false;
+song.addEventListener('loadeddata',()=>hasSong=true);
+song.addEventListener('error',()=>hasSong=false);   // audio na mile to 15s clock fallback
+
+function resize(){
+  const vv=window.visualViewport;
+  W=vv?vv.width:innerWidth; H=vv?vv.height:innerHeight;
+  DPR=Math.min(devicePixelRatio||1,2);
+  cv.width=W*DPR; cv.height=H*DPR;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  S=Math.min(W,H)*.94; X0=(W-S)/2; Y0=(H-S)/2;
+  FS=Math.max(13,S*.055);
+  LW=Math.max(2,S*.0065);
+  TIP=Math.max(3.5,S*.011);
+  lyrs.forEach(el=>{ el.style.top=(el.dataset.zone==='top'
+      ? Math.max(10,Y0*.45) : Y0+S*.90)+'px'; });
+}
+addEventListener('resize',resize);
+if(window.visualViewport) visualViewport.addEventListener('resize',resize);
+resize();
+const P=q=>[X0+q.x*S, Y0+q.y*S];
+
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const easeOutCubic=x=>1-Math.pow(1-x,3);
+const easeInOut=x=>-(Math.cos(Math.PI*x)-1)/2;
+function prog(t,t0){if(t<=t0)return 0;
+  const a=clamp((t-t0)/5.5),b=clamp((t-t0-5.5)/(TOUCH-t0-5.5));
+  return Math.min(.86*easeOutCubic(a)+.14*easeInOut(b),1);}
+function zoom(t){return 1 + .3*easeInOut(clamp((t-6.5)/5.5)) + .9*easeInOut(clamp((t-12)/3));}
+
+const pinkPath=s=>{const u=1-s;return{
+  x:u*u*O.x+2*u*s*C.x+s*s*M.x, y:u*u*O.y+2*u*s*C.y+s*s*M.y};};
+const bluePath=s=>{const f=(.10*s+.33*Math.pow(s,4))/.43;
+  return{x:O.x+(M.x-O.x)*s, y:O.y-(O.y-M.y)*f};};
+
+function strokeCurve(path,p,color){if(p<=.002)return null;
+  const N=260,n=Math.floor(N*p);
+  ctx.beginPath();
+  for(let i=0;i<=n;i++){const q=P(path(i/N));i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);}
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=color;ctx.shadowColor=color;
+  ctx.globalAlpha=.22;ctx.lineWidth=LW*2;ctx.shadowBlur=S*.04;ctx.stroke();
+  ctx.globalAlpha=1;ctx.lineWidth=LW;ctx.shadowBlur=S*.025;ctx.stroke();
+  ctx.shadowBlur=0;
+  return path(p);}
+function tipDot(q){const[x,y]=P(q);
+  let g=ctx.createRadialGradient(x,y,0,x,y,TIP*3);
+  g.addColorStop(0,'rgba(255,255,255,.8)');g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,TIP*3,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=TIP*2;
+  ctx.beginPath();ctx.arc(x,y,TIP,0,7);ctx.fill();ctx.shadowBlur=0;}
+function eq(text,sup,tx,ty,up,color){
+  ctx.textBaseline='middle';
+  ctx.font=`italic ${FS}px Georgia,"Times New Roman",serif`;
+  const w1=ctx.measureText(text).width;
+  ctx.font=`italic ${FS*.62}px Georgia,serif`;
+  const w2=ctx.measureText(sup).width+2, tot=w1+w2;
+  let x=tx+FS*.5; if(x+tot>W-6) x=tx-FS*.5-tot;
+  const y=ty+(up?-FS*.9:FS*1.1);
+  ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=10;
+  ctx.font=`italic ${FS}px Georgia,"Times New Roman",serif`;
+  ctx.fillText(text,x,y);
+  ctx.font=`italic ${FS*.62}px Georgia,serif`;
+  ctx.fillText(sup,x+w1+2,y-FS*.32);ctx.shadowBlur=0;}
+function axes(t){const a=easeOutCubic(clamp(t/.9));if(a<=0)return;
+  const[ox,oy]=P(O),[x1]=P({x:.95,y:O.y}),[,y1]=P({x:O.x,y:.05});
+  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=Math.max(1.5,LW*.5);ctx.shadowBlur=0;
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+(x1-ox)*a,oy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox,oy+(y1-oy)*a);ctx.stroke();
+  const aa=clamp((t-.9)/.4);if(aa>0){ctx.fillStyle=`rgba(255,255,255,${.6*aa})`;
+    ctx.beginPath();ctx.moveTo(x1,oy);ctx.lineTo(x1-11,oy-4.5);ctx.lineTo(x1-11,oy+4.5);ctx.fill();
+    ctx.beginPath();ctx.moveTo(ox,y1);ctx.lineTo(ox-4.5,y1+11);ctx.lineTo(ox+4.5,y1+11);ctx.fill();
+    ctx.font=`italic ${FS*.8}px Georgia,serif`;
+    ctx.fillText('x',x1-FS*.7,oy+FS);ctx.fillText('y',ox-FS,y1+FS*.7);}}
+
+function render(t){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#060606';ctx.fillRect(0,0,W,H);
+  const z=zoom(t),[mx,my]=P(M);
+  ctx.translate(mx,my);ctx.scale(z,z);ctx.translate(-mx,-my);
+  axes(t);
+  const tp=strokeCurve(pinkPath,prog(t,1.0),'#ff4d8d');
+  const tb=strokeCurve(bluePath,prog(t,1.3),'#00a8ff');
+  if(tb){tipDot(tb);const[x,y]=P(tb);eq('y = 1.1','x',x,y,false,'#45c8ff');}
+  if(tp){tipDot(tp);const[x,y]=P(tp);eq('y = x','2',x,y,true,'#ff6d9e');}
+  const bt=clamp((t-14.2)/.9);
+  if(bt>0){const[x,y]=P(M),r=S*.06+S*.16*easeOutCubic(bt);
+    const gr=ctx.createRadialGradient(x,y,0,x,y,r);
+    gr.addColorStop(0,`rgba(255,255,255,${.45*easeOut(bt)})`);gr.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();}
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const v=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.max(W,H)*.75);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+  titleEl.classList.toggle('show',t>.2&&t<5.0);
+  words.forEach(el=>el.classList.toggle('on',t>=+el.dataset.t));
+  lyrs.forEach(el=>el.classList.toggle('off',t>+el.dataset.end));}
+
+/* clock: song loaded -> audio-locked sync, warna 15s fallback */
+const currentT=()=>!started?0:hasSong?Math.min(song.currentTime,DUR):Math.min((performance.now()-startStamp)/1000,DUR);
+function clearLyrics(){words.forEach(e=>e.classList.remove('on'));lyrs.forEach(e=>e.classList.remove('off'));}
+function start(){clearLyrics();started=true;playing=true;
+  if(hasSong){song.currentTime=0;song.play().catch(()=>{});}
+  startStamp=performance.now();ov.classList.add('hidden');}
+function tick(){let t=playing?currentT():pausedT;
+  if(playing&&t>=DUR){playing=false;pausedT=DUR;if(hasSong)song.pause();
+    pbox.textContent='Replay';ov.classList.remove('hidden');}
+  render(t);requestAnimationFrame(tick);}
+requestAnimationFrame(tick);
+pbox.onclick=e=>{e.stopPropagation();start();};
+ov.onclick=()=>start();
+render(0);
+</script>
+</body>
+</html>
