@@ -26,7 +26,6 @@
   #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
       background:rgba(0,0,0,.5);z-index:10;cursor:pointer}
   #ov.hidden{display:none}
-  /* sleek pill: indigo+blue gradient border + gradient text */
   #pbox,#rbox{
     border:1.5px solid transparent;border-radius:999px;padding:11px 48px;
     font-family:'Poppins',sans-serif;font-size:15px;font-weight:600;
@@ -101,7 +100,6 @@ const easeInCubic=x=>x*x*x;
 function prog(t,t0){if(t<=t0)return 0;
   const a=clamp((t-t0)/5.5),b=clamp((t-t0-5.5)/(TOUCH-t0-5.5));
   return Math.min(.86*easeOutCubic(a)+.14*easeInOut(b),1);}
-/* FAST ZOOM: tez push-in, 3x tak */
 function zoom(t){return 1
   + .45*easeInOut(clamp((t-6.5)/3.5))
   + 1.55*easeInCubic(clamp((t-10)/4.6))
@@ -174,7 +172,6 @@ function render(t){
   const v=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.max(W,H)*.75);
   v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.5)');
   ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
-  /* equations right side; end pe fade-out (13.2 -> 14.0) */
   const eqA=1-clamp((t-13.2)/.8);
   const ZS=p=>[F[0]+(P(p)[0]-F[0])*z, F[1]+(P(p)[1]-F[1])*z];
   if(eqA>0){
@@ -184,13 +181,22 @@ function render(t){
   words.forEach(el=>el.classList.toggle('on',t>=(+el.dataset.t+LS)));
   lyrs.forEach(el=>el.classList.toggle('off',t>(+el.dataset.end+LS)));}
 
-const currentT=()=>!started?0:hasSong?Math.min(song.currentTime,DUR):Math.min((performance.now()-startStamp)/1000,DUR);
+/* MASTER CLOCK: wall-clock primary (replay pe guaranteed reset),
+   audio se auto-resync jab bhi drift > 0.15s -> lyrics synced */
+function currentT(){
+  if(!started)return 0;
+  let t=(performance.now()-startStamp)/1000;
+  if(hasSong&&playing&&!song.paused&&!song.ended&&isFinite(song.currentTime)&&song.currentTime>0.05){
+    if(Math.abs(song.currentTime-t)>0.15){ startStamp=performance.now()-song.currentTime*1000; t=song.currentTime; }
+  }
+  return Math.min(t,DUR);}
 function clearLyrics(){words.forEach(e=>e.classList.remove('on'));lyrs.forEach(e=>e.classList.remove('off'));}
 function finish(){playing=false;pausedT=DUR;if(hasSong)song.pause();
   pbox.style.display='none'; rbox.style.display='block'; ov.classList.remove('hidden');}
 function start(){clearLyrics();started=true;playing=true;
-  if(hasSong){song.currentTime=0;song.play().catch(()=>{});}
-  startStamp=performance.now();ov.classList.add('hidden');}
+  if(hasSong){ song.pause(); try{song.currentTime=0;}catch(e){}
+    song.load(); song.play().catch(()=>{}); }        // hard reset -> audio bhi 0 se
+  startStamp=performance.now(); ov.classList.add('hidden');}
 function tick(){let t=playing?currentT():pausedT;
   if(playing&&t>=DUR)finish();
   render(t);requestAnimationFrame(tick);}
