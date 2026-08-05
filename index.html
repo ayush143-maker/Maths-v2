@@ -41,7 +41,7 @@
 </head>
 <body>
 <canvas id="cv"></canvas>
-<div id="ver">v8</div>
+<div id="ver">v9</div>
 
 <div id="title"><span class="q">❝</span> Maths is not <span class="rom">romantic</span> <span class="q">❞</span></div>
 
@@ -68,7 +68,8 @@
 const SONG='pro.mp3';      // audio file (repo me index.html ke saath)
 const LS=-0.5;             // lyric sync shift (seconds)
 const DUR=15.0, TOUCH=14.6;
-const O={x:.10,y:.85}, C={x:.32,y:.60}, M={x:.60,y:.32};
+/* geometry: O origin, M meet-point (x-axis stretched) */
+const O={x:.08,y:.86}, M={x:.74,y:.30};
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 const song=document.getElementById('song'); song.src=SONG;
 const words=[...document.querySelectorAll('.lyr .w, .lyr .h')];
@@ -76,7 +77,7 @@ const lyrs=[...document.querySelectorAll('.lyr')];
 const titleEl=document.getElementById('title');
 const ov=document.getElementById('ov'),pbox=document.getElementById('pbox'),rbox=document.getElementById('rbox');
 
-let W,H,DPR,S,X0,Y0,FS,LW,TIP;
+let W,H,DPR,S,SX,X0,Y0,FS,LW,TIP;
 let playing=false,started=false,pausedT=0,startStamp=0,hasSong=false;
 song.addEventListener('loadeddata',()=>hasSong=true);
 song.addEventListener('error',()=>hasSong=false);
@@ -87,14 +88,16 @@ function resize(){
   W=vv?vv.width:innerWidth; H=vv?vv.height:innerHeight;
   DPR=Math.min(devicePixelRatio||1,2);
   cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
-  S=Math.min(W,H)*.94; X0=(W-S)/2; Y0=(H-S)/2;
+  S=Math.min(W,H)*.94;                 // vertical stage
+  SX=Math.min(W*.94, S*1.35);          // horizontal stretch (x-axis lambi)
+  X0=(W-SX)/2; Y0=(H-S)/2;
   FS=Math.max(13,S*.055); LW=Math.max(2,S*.0065); TIP=Math.max(3.5,S*.011);
   lyrs.forEach(el=>{ el.style.top=(el.dataset.zone==='top'?Math.max(10,Y0*.45):Y0+S*.90)+'px'; });
 }
 addEventListener('resize',resize);
 if(window.visualViewport) visualViewport.addEventListener('resize',resize);
 resize();
-const P=q=>[X0+q.x*S, Y0+q.y*S];
+const P=q=>[X0+q.x*SX, Y0+q.y*S];
 
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const easeOutCubic=x=>1-Math.pow(1-x,3);
@@ -108,10 +111,10 @@ function zoom(t){return 1
   + 1.55*easeInCubic(clamp((t-10)/4.6))
   - .20*easeInOut(clamp((t-14.6)/.4));}
 
-const pinkPath=s=>{const u=1-s;return{
-  x:u*u*O.x+2*u*s*C.x+s*s*M.x, y:u*u*O.y+2*u*s*C.y+s*s*M.y};};
-const bluePath=s=>{const f=(.10*s+.33*Math.pow(s,4))/.43;
-  return{x:O.x+(M.x-O.x)*s, y:O.y-(O.y-M.y)*f};};
+/* PINK = asli parabola (s^2): flat start -> steep end (y=x jaisi straight NAHI) */
+const pinkPath=s=>({x:O.x+(M.x-O.x)*s, y:O.y-(O.y-M.y)*s*s});
+/* BLUE = exponential (flat then blast) */
+const bluePath=s=>({x:O.x+(M.x-O.x)*s, y:O.y-(O.y-M.y)*(.12*s+.88*Math.pow(s,4))});
 
 function strokeCurve(path,p,color){if(p<=.002)return null;
   const N=260,n=Math.floor(N*p);
@@ -142,7 +145,7 @@ function eq(text,sup,sx,sy,up,color,alpha){
   ctx.fillText(sup,x+w1+2,y-FS*.32);
   ctx.restore();}
 function axes(t){const a=easeOutCubic(clamp(t/.9));if(a<=0)return;
-  const[ox,oy]=P(O),[x1]=P({x:.95,y:O.y}),[,y1]=P({x:O.x,y:.05});
+  const[ox,oy]=P(O),[x1]=P({x:.97,y:O.y}),[,y1]=P({x:O.x,y:.04});
   ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=Math.max(1.5,LW*.5);ctx.shadowBlur=0;
   ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+(x1-ox)*a,oy);ctx.stroke();
   ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox,oy+(y1-oy)*a);ctx.stroke();
@@ -184,7 +187,6 @@ function render(t){
   words.forEach(el=>el.classList.toggle('on',t>=(+el.dataset.t+LS)));
   lyrs.forEach(el=>el.classList.toggle('off',t>(+el.dataset.end+LS)));}
 
-/* MASTER CLOCK: wall-clock primary; audio se resync sirf jab drift > .15s */
 function currentT(){
   if(!started)return 0;
   let t=(performance.now()-startStamp)/1000;
@@ -200,14 +202,13 @@ function start(){clearLyrics();started=true;playing=true;
     song.play().catch(()=>{}); }
   startStamp=performance.now(); pausedT=0; ov.classList.add('hidden');}
 
-/* ANTI-FREEZE LOOP: try/finally + watchdog — rAF kabhi nahi marta */
 let rafId=0,lastFrame=performance.now();
 function loop(){rafId=0;lastFrame=performance.now();
   try{
     let t=playing?currentT():pausedT;
     if(playing&&t>=DUR)finish();
     render(t);
-  }catch(e){/* kabhi crash mat karo */}
+  }catch(e){}
   schedule();}
 function schedule(){ if(!rafId) rafId=requestAnimationFrame(loop); }
 setInterval(()=>{ if(performance.now()-lastFrame>600){ rafId=0; schedule(); } },400);
