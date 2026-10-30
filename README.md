@@ -12,6 +12,8 @@ python -m http.server 8000
 
 Then visit <http://localhost:8000>.
 
-## Making changes
+## Personalize the page and audio
 
-The page and its interaction are defined in `index.html`. If replacing `pro.mp3`, keep its path aligned with the page reference. Mobile browsers may require a user gesture before audio can play, so use the controls when checking audio. Keep the audio file in the project folder when hosting the static page.
+The page content and presentation are defined in `index.html`. Its Google Fonts link is external; changing or removing it may affect the typography. If replacing `pro.mp3`, keep its path aligned with the page reference, or update the reference if you rename or move the file. Keep the audio file in the project folder when hosting the static page so the relative path continues to work.
+
+Mobile browsers may require a user gesture before audio can play, so use the controls when checking audio.
