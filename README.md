@@ -18,12 +18,20 @@ The page content and presentation are defined in `index.html`. Its Google Fonts 
 
 Mobile browsers may require a user gesture before audio can play, so use the controls when checking audio.
 
+## Asset and loading review checklist
+
+This is a checklist of actions to perform, not a record of verified results.
+
+- Check the audio reference in `index.html` against the root `pro.mp3` file and confirm the referenced file is present and plays when started with the page controls.
+- Keep only media that the page uses. If replacing the audio or adding imagery, choose files sized for their role rather than keeping unnecessarily large originals or unused variants.
+- Review the Google Fonts link in `index.html`; retain it only if the page intentionally uses that font. Check the page typography if the external request is unavailable.
+- Inspect `index.html` for other local media and external font or script references. Confirm each is intentional and that local paths resolve.
+
 ## Manual review checklist
 
 This is a checklist of actions to perform, not a record of verified results.
 
 - Open the root `index.html` in a browser, or use the local preview steps above, and review the page and mathematical imagery.
-- Check that the audio reference in `index.html` points to `pro.mp3` in the project folder and that the file is available at that path.
 - Use the play and replay controls. Check whether audio starts after interaction and whether replay behaves as intended; mobile browsers may require a user gesture.
 - Inspect the page at a narrow mobile-sized viewport and a wide desktop-sized viewport. Check that the imagery and controls remain visible and usable.
 - If you changed the Google Fonts link, review the typography with that change in place.
