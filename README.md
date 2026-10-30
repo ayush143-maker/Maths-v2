@@ -1,19 +1,15 @@
 # Maths-v2
 
-A romantic-themed micro-page titled “Maths is not romantic”, with a simple play/replay interaction and a single-page layout.
+Maths-v2 is a short creative web experiment built around the title **“Maths is not romantic.”** Its single-page presentation combines mathematical imagery with a simple play/replay interaction, using the contrast between the title and the visual treatment as the main idea.
 
-## Run locally
+## Preview locally
 
-Open index.html in a modern browser. If browser restrictions block local assets or APIs, serve the folder over HTTP.
+Open index.html in a modern browser. No dependency installation is needed. To serve the page over HTTP, run:
 
-## Structure and assets
+    python -m http.server 8000
 
-`index.html` is the primary entry point. Keep linked images, audio, scripts, and styles in their existing relative locations; renaming files may break references.
-
-## Preview and deployment
-
-Open the page in a modern browser. If local-file behavior is restricted, start a simple HTTP server from this folder and open the local address in your browser. For static hosting, publish the correct root folder and check asset paths after deployment.
+Then visit http://localhost:8000.
 
 ## Making changes
 
-Test the page after edits and check both phone-sized and desktop-sized viewports. Confirm that buttons and other visible interactions work in the deployed version as well as locally.
+The page and its interaction are defined in index.html, with pro.mp3 included as a local audio asset. Keep the audio path intact if replacing the file, and test playback on mobile browsers where sound may require an explicit user gesture.
