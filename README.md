@@ -18,6 +18,12 @@ The page content and presentation are defined in `index.html`. Its Google Fonts 
 
 Mobile browsers may require a user gesture before audio can play, so use the controls when checking audio.
 
+## Configuration and data handling
+
+The listed root files contain no `.env.example` or separate configuration file. This static page has no server-side environment in which to keep secrets: anything placed in its HTML or delivered browser files can be viewed by visitors. Do not put passwords, tokens, or other secrets in the page or tracked files.
+
+The page and `pro.mp3` are project content. Review them before publishing, and do not include private information or audio you do not have permission to distribute.
+
 ## Browser and platform reliability review checklist
 
 This is a checklist for a future review, not a record of completed testing or verified results.
