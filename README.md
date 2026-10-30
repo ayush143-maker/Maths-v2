@@ -1,6 +1,6 @@
 # Maths-v2
 
-A short creative web experiment titled “Maths is not romantic.” Its single-page presentation combines mathematical imagery with a simple play and replay interaction.
+A short creative web experiment titled “Maths is not romantic.” Its single-page presentation combines mathematical imagery with play and replay controls for the included audio.
 
 ## Preview locally
 
