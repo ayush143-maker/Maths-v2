@@ -17,3 +17,13 @@ Then visit <http://localhost:8000>.
 The page content and presentation are defined in `index.html`. Its Google Fonts link is external; changing or removing it may affect the typography. If replacing `pro.mp3`, keep its path aligned with the page reference, or update the reference if you rename or move the file. Keep the audio file in the project folder when hosting the static page so the relative path continues to work.
 
 Mobile browsers may require a user gesture before audio can play, so use the controls when checking audio.
+
+## Manual review checklist
+
+This is a checklist of actions to perform, not a record of verified results.
+
+- Open the root `index.html` in a browser, or use the local preview steps above, and review the page and mathematical imagery.
+- Check that the audio reference in `index.html` points to `pro.mp3` in the project folder and that the file is available at that path.
+- Use the play and replay controls. Check whether audio starts after interaction and whether replay behaves as intended; mobile browsers may require a user gesture.
+- Inspect the page at a narrow mobile-sized viewport and a wide desktop-sized viewport. Check that the imagery and controls remain visible and usable.
+- If you changed the Google Fonts link, review the typography with that change in place.
