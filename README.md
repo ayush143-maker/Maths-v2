@@ -4,7 +4,7 @@ A short creative web experiment titled “Maths is not romantic.” The root `in
 
 ## Preview locally
 
-Open `index.html` in a modern browser. Alternatively, serve the project folder over HTTP by running:
+Open `index.html` in a browser. Alternatively, serve the project folder over HTTP by running:
 
     python -m http.server 8000
 
