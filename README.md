@@ -1,6 +1,6 @@
 # Maths-v2
 
-A short creative web experiment titled “Maths is not romantic.” Its single-page presentation combines mathematical imagery with play and replay controls for the included audio.
+A short creative web experiment titled “Maths is not romantic.” Its single-page presentation in `index.html` combines mathematical imagery with play and replay controls for the included local audio asset, `pro.mp3`.
 
 ## Preview locally
 
@@ -12,4 +12,4 @@ Then visit http://localhost:8000.
 
 ## Making changes
 
-The page and its interaction are defined in `index.html`, with `pro.mp3` included as a local audio asset. Keep the audio path intact if replacing the file. Mobile browsers may require a user gesture before sound can play.
+The page and its interaction are defined in `index.html`. Keep the audio path intact if replacing `pro.mp3`. Mobile browsers may require a user gesture before sound can play.
